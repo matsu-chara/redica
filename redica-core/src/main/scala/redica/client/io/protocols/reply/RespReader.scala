@@ -65,16 +65,16 @@ private[reply] class RespReader {
     */
   def readBytes(in: InputStream, n: Int): Array[Byte] = {
     var count = 0
-    val buf = mutable.ArrayBuilder.make[Byte]()
+    val buf = ByteBuffer.allocate(n)
     while(count < n) {
       val next = in.read()
       if(next == -1) {
         throw new RedicaConnectionException("connection close?")
       }
-      buf += next.toByte
+      buf.put(next.toByte)
       count = count + 1
     }
-    buf.result()
+    buf.array()
   }
 }
 
