@@ -1,6 +1,7 @@
 package redica.client.io.protocols.reply
 
 import java.io.InputStream
+import java.nio.ByteBuffer
 
 import redica.client.io.exceptions.RedicaConnectionException
 
@@ -64,18 +65,17 @@ private[reply] class RespReader {
     */
   def readBytes(in: InputStream, n: Int): Array[Byte] = {
     var count = 0
-    val reply = mutable.ArrayBuilder.make[Byte]()
+    val buf = mutable.ArrayBuilder.make[Byte]()
     while(count < n) {
       val next = in.read()
       if(next == -1) {
         throw new RedicaConnectionException("connection close?")
       }
-      reply += next.toByte
+      buf += next.toByte
       count = count + 1
     }
-    reply.result()
+    buf.result()
   }
-
 }
 
 
