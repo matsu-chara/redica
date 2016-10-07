@@ -2,10 +2,26 @@
 
 ## Usage
 
+start redis-server.
+
 ```sh
 docker pull redis
 docker run --name some-redis -p 6379:6379
 ```
+
+add build.sbt dependency.
+
+```scala
+lazy val sample = project.in(file("."))
+  .settings(
+    scalaVersion := "2.11.8"
+  )
+  .dependsOn(redicaProject)
+
+lazy val redicaProject = ProjectRef(uri("git://github.com/matsu-chara/redica.git"), "core")
+```
+
+write code.
 
 ```scala
 import redica.client.RedisClientFactory
