@@ -13,12 +13,12 @@ lazy val commonSettings = Seq(
   )
 )
 
-lazy val redica = (project in file(".")).
-  aggregate(client, benchmark, example)
+lazy val redica = (project in file("."))
+  .aggregate(client, benchmark, example)
 
-lazy val client = (project in file("redica-client")).
-  settings(commonSettings: _*).
-  settings(
+lazy val client = (project in file("redica-client"))
+  .settings(commonSettings: _*)
+  .settings(
     name := "redica",
     version := "0.1-SNAPSHOT",
     libraryDependencies ++= Seq(
@@ -28,11 +28,11 @@ lazy val client = (project in file("redica-client")).
     )
   )
 
-lazy val benchmark = (project in file("redica-benchmark")).
-  settings(commonSettings: _*).
-  dependsOn(client).
-  enablePlugins(JmhPlugin)
+lazy val benchmark = (project in file("redica-benchmark"))
+  .settings(commonSettings: _*)
+  .dependsOn(client)
+  .enablePlugins(JmhPlugin)
 
-lazy val example = (project in file("redica-example")).
-  settings(commonSettings: _*).
-  dependsOn(client)
+lazy val example = (project in file("redica-example"))
+  .settings(commonSettings: _*)
+  .dependsOn(client)
