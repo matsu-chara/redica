@@ -18,7 +18,7 @@ lazy val sample = project.in(file("."))
   )
   .dependsOn(redicaProject)
 
-lazy val redicaProject = ProjectRef(uri("git://github.com/matsu-chara/redica.git"), "core")
+lazy val redicaProject = ProjectRef(uri("git://github.com/matsu-chara/redica.git"), "client")
 ```
 
 write code.
