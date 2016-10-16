@@ -11,7 +11,8 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     //    blocking()
-    async()
+    nonBlocking()
+    //    async()
   }
 
   def blocking(): Unit = {
@@ -29,12 +30,28 @@ object Main {
     client.close()
   }
 
+  def nonBlocking(): Unit = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+
+    val client = RedisClientFactory.connectNonBlocking("127.0.0.1", 6379)
+    val result = Future.sequence(
+      (1 to 1024 * 5).map { i =>
+        Future(()) // empty Future for start many threads
+          .flatMap { _ => client.set("a", i).zip(client.getAsInt("a")).zip(client.getAsString("b")).zip(client.set("b", "mofu"))
+        }
+      }
+    ).flatMap { _ => client.getAsInt("a").zip(client.getAsString("b")) }
+
+    println(Await.result(result, Duration(10, TimeUnit.SECONDS)))
+    client.close()
+  }
+
   def async(): Unit = {
     import scala.concurrent.ExecutionContext.Implicits.global
 
     val client = RedisClientFactory.connectAsync("127.0.0.1", 6379)
     val result = Future.sequence(
-      (1 to 1024*16).map { i =>
+      (1 to 1024 * 16).map { i =>
         Future(()) // empty Future for start many threads
           .flatMap { _ => client.set("a", i).zip(client.getAsInt("a")).zip(client.getAsString("b")).zip(client.set("b", "mofu"))
         }

@@ -8,6 +8,11 @@ sealed trait ReplyResult[+A] extends Product with Serializable {
     case a => a
   }
 
+  def inProgressForeach(f: Array[Byte] => Unit): Unit = this match {
+    case ReplyInProgress(p) => f(p)
+    case _ => ()
+  }
+
   def flatMap[B](f: A => ReplyResult[B]): ReplyResult[B] = this match {
     case ReplySuccess(a) => f(a)
     case p: ReplyInProgress => p

@@ -5,6 +5,8 @@ import org.scalatest.FunSpec
 import org.scalatest.prop.PropertyChecks
 import redica.exceptions.RedicaException
 
+import scala.collection.mutable
+
 class ReplyResultTest extends FunSpec with PropertyChecks {
 
   implicit def arbReplyResult[A](implicit arb: Arbitrary[A]) = Arbitrary {
@@ -59,6 +61,16 @@ class ReplyResultTest extends FunSpec with PropertyChecks {
           assert(equal(replyResult.inProgressMap(f).inProgressMap(g), replyResult.inProgressMap(f andThen g)))
         }
       }
+    }
+
+    it("should inProgressForeach") {
+      val builder = mutable.ArrayBuilder.make[Byte]
+      builder ++= Array(1,2,3).map(_.toByte)
+
+      ReplyInProgress(Array(4,5,6).map(_.toByte)).inProgressForeach { x =>
+        builder ++= x
+      }
+      assert(builder.result().deep === Array(1,2,3,4,5,6).map(_.toByte))
     }
   }
 }
