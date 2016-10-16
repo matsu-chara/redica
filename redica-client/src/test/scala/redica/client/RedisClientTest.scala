@@ -1,12 +1,10 @@
 package redica.client
 
-import java.io.InputStream
-
 import org.mockito.Matchers._
 import org.mockito.Mockito._
 import org.scalatest.FunSpec
 import org.scalatest.mockito.MockitoSugar
-import redica.client.io.RedisIo
+import redica.client.io.strategies.RedisIo
 import redica.util.ByteUtil
 
 import scala.concurrent.duration.Duration
@@ -19,7 +17,7 @@ class RedisClientTest extends FunSpec with MockitoSugar {
 
     it("should get") {
       val mockIo = mock[RedisIo]
-      when(mockIo.send(any[Array[Byte]])(any[InputStream => Either[redica.client.io.exceptions.RedicaProtocolException, Array[Byte]]]()))
+      when(mockIo.send(any[Array[Byte]]))
         .thenReturn(Future.successful(ByteUtil.getBytes("data")))
       val sut = new RedisClient(mockIo)
       val actual = sut.get[String, String]("test")
@@ -28,8 +26,7 @@ class RedisClientTest extends FunSpec with MockitoSugar {
 
     it("should set") {
       val mockIo = mock[RedisIo]
-      when(mockIo.send(any[Array[Byte]])(any[InputStream => Either[redica.client.io.exceptions.RedicaProtocolException, Boolean]]()))
-        .thenReturn(Future.successful(true))
+      when(mockIo.send(any[Array[Byte]])).thenReturn(Future.successful(Array(1.toByte)))
       val sut = new RedisClient(mockIo)
       val actual = sut.set("test", "data")
 

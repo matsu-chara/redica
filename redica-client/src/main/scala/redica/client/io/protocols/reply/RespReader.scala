@@ -1,9 +1,8 @@
 package redica.client.io.protocols.reply
 
-import java.io.InputStream
 import java.nio.ByteBuffer
 
-import redica.client.io.exceptions.RedicaConnectionException
+import redica.client.io.protocols.ArrayByteOrInputStreamWrapper
 
 import scala.collection.mutable
 
@@ -14,9 +13,10 @@ private[reply] class RespReader {
 
   /**
     * read while \r\n found
-    * @return a line data (it does not contain \r\n)
+    *
+    * @return a line data (it contains \r\n)
     */
-  def readLine(in: InputStream): Array[Byte] = {
+  def readLine(in: ArrayByteOrInputStreamWrapper): ReplyResult[Array[Byte]] = {
     /*
      * 0: not in delimtier
      * 1: in delimiterPos (read 13)
@@ -30,8 +30,10 @@ private[reply] class RespReader {
 
       // end of stream
       if (current == -1) {
-        throw new RedicaConnectionException("connection close?")
+        return ReplyInProgress(reply.result())
       }
+
+      reply += current
 
       delimiterPos match {
         // found "\r", forward.
@@ -45,36 +47,33 @@ private[reply] class RespReader {
         // "not delimiter bytes" found.
         case 0 =>
           delimiterPos = 0
-          reply += current.toByte
 
         // "not delimiter bytes" found.
         case 1 =>
           delimiterPos = 0
-          reply += 13.toByte
-          reply += current.toByte
 
         case _ =>
           throw new IllegalStateException("implementation error")
       }
     }
-    reply.result()
+    ReplySuccess(reply.result())
   }
 
   /**
     * read n bytes
     */
-  def readBytes(in: InputStream, n: Int): Array[Byte] = {
+  def readBytes(in: ArrayByteOrInputStreamWrapper, n: Int): ReplyResult[Array[Byte]] = {
     var count = 0
     val buf = ByteBuffer.allocate(n)
-    while(count < n) {
+    while (count < n) {
       val next = in.read()
-      if(next == -1) {
-        throw new RedicaConnectionException("connection close?")
+      if (next == -1) {
+        return ReplyInProgress(buf.array().take(count))
       }
-      buf.put(next.toByte)
+      buf.put(next)
       count = count + 1
     }
-    buf.array()
+    ReplySuccess(buf.array())
   }
 }
 

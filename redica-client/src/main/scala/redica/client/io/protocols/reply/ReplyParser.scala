@@ -1,8 +1,7 @@
 package redica.client.io.protocols.reply
 
-import java.io.InputStream
-
 import redica.client.io.exceptions.RedicaProtocolException
+import redica.client.io.protocols.ArrayByteOrInputStreamWrapper
 import redica.exceptions.RedicaException
 import redica.util.{ByteUtil, StringParseUtil}
 
@@ -10,49 +9,63 @@ import scala.util.control.NonFatal
 
 /**
   * parse response as RESP(REdis Serialization Protocol)
+  *
   * @see [[http://redis.io/topics/protocol]]
   */
 trait ReplyParser extends UseRespReader {
 
+  def trimCRLF(a: Array[Byte]): Array[Byte] = {
+    if (a.endsWith(ByteUtil.getBytes("\r\n"))) {
+      a.dropRight(2)
+    } else {
+      a
+    }
+  }
+
+  def parse(in: ArrayByteOrInputStreamWrapper): ReplyResult[Array[Byte]] = {
+    try {
+      val firstLineResult = respReader.readLine(in)
+      firstLineResult.flatMap { firstLine =>
+        ByteUtil.fromBytes(trimCRLF(firstLine)).headOption match {
+          case Some('$') => bulk(firstLine, in)
+          case Some('+') | Some('-') => status(firstLine, in)
+          case _ => ReplyFailed(new RedicaException(s"unsupported reply ${ByteUtil.fromBytes(firstLine)}"))
+        }
+      }
+    } catch {
+      case NonFatal(e) => ReplyFailed(new RedicaException("failed to read reply", e))
+    }
+  }
+
   /**
     * parse status reply( OK or error msg)
     */
-  def status(in: InputStream): Either[RedicaException, Boolean] = {
-    try {
-      val line = ByteUtil.fromBytes(respReader.readLine(in))
-      line.headOption match {
-        case Some('+') if line.tail == s"OK" => Right(true)
-        case Some('-') => Right(false)
-        case _ => Left(new RedicaProtocolException(s"unknown response ${line}"))
-      }
-    } catch {
-      case NonFatal(e) => Left(new RedicaException("failed to read reply", e))
+  private def status(fisrtLineBytes: Array[Byte], in: ArrayByteOrInputStreamWrapper): ReplyResult[Array[Byte]] = {
+    val firstLine = ByteUtil.fromBytes(trimCRLF(fisrtLineBytes))
+    firstLine.headOption match {
+      case Some('+') if firstLine.tail == s"OK" => ReplySuccess(Array(1.toByte))
+      case Some('+') => ReplyInProgress(fisrtLineBytes)
+      case Some('-') => ReplySuccess(Array(0.toByte))
+      case _ => ReplyFailed(new RedicaException("wrong implementation."))
     }
   }
+
 
   /**
     * parse bulk reply
     * see test for sample data
     */
-  def bulk(in: InputStream): Either[RedicaException, Array[Byte]] = {
-    try {
-      val firstLine = ByteUtil.fromBytes(respReader.readLine(in))
+  private def bulk(firstLineBytes: Array[Byte], in: ArrayByteOrInputStreamWrapper): ReplyResult[Array[Byte]] = {
+    // for more specified exception
+    val replyBodyBytes = StringParseUtil.safeParseInt(ByteUtil.fromBytes(trimCRLF(firstLineBytes)).tail).right
+      .getOrElse(throw new RedicaProtocolException(s"redis response doesn't contain total bytes in first line: ${
+        firstLineBytes.tail
+      }"))
 
-      firstLine.startsWith("$") match {
-        case true =>
-          // for more specified exception
-          val replyBodyBytes = StringParseUtil.safeParseInt(firstLine.tail).right
-            .getOrElse(throw new RedicaProtocolException(s"redis response doesn't contain total bytes in first line: $firstLine"))
-
-          val content = respReader.readBytes(in, replyBodyBytes)
-          respReader.readLine(in) // ignore last CR_LF
-          Right(content)
-        case false =>
-          Left(new RedicaProtocolException("redis response not start with $"))
-      }
-    } catch {
-      case NonFatal(e) => Left(new RedicaException("failed to read reply", e))
-    }
+    respReader
+      .readBytes(in, replyBodyBytes + 2) // +2 means CR_LF bytes for complete reading
+      .inProgressMap(bytes => firstLineBytes ++ bytes) // return to state before reading
+      .map(trimCRLF) // remove CR_LF if succeeded
   }
 }
 

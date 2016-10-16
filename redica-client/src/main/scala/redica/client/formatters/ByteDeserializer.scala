@@ -6,7 +6,7 @@ import scala.annotation.implicitNotFound
 import scala.util.Try
 
 @implicitNotFound(msg = "ByteDeserializer[${A}] instance not found. please implement.")
-trait ByteDeserializer[A] { self =>
+trait ByteDeserializer[A] {self =>
   def fromBytesOpt(a: Array[Byte]): Option[A]
 
   def map[B](f: A => B) = new ByteDeserializer[B] {

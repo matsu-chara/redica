@@ -6,6 +6,7 @@ import scala.collection.mutable
 
 /**
   * encode request as RESP(REdis Serialization Protocol)
+  *
   * @see [[http://redis.io/topics/protocol]]
   */
 trait RequestParser {

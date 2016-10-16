@@ -5,7 +5,7 @@ import redica.util.ByteUtil
 import scala.annotation.implicitNotFound
 
 @implicitNotFound(msg = "ByteSerializer[${A}] instance not found. please implement.")
-trait ByteSerializer[A] { self =>
+trait ByteSerializer[A] {self =>
   def toBytes(a: A): Array[Byte]
 
   def contramap[B](f: B => A) = new ByteSerializer[B] {
