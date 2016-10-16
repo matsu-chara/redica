@@ -1,5 +1,7 @@
 # Redica
 
+[![Build Status](https://travis-ci.org/matsu-chara/redica.svg?branch=master)](https://travis-ci.org/matsu-chara/redica)
+
 ## Usage
 
 start redis-server.
